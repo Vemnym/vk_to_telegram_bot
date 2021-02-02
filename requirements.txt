@@ -1,0 +1,9 @@
+bitlyshortener==0.5.0
+cachetools==4.2.0
+certifi==2020.12.5
+chardet==4.0.0
+futures==3.1.1
+idna==2.10
+pyTelegramBotAPI==3.7.4
+requests==2.25.1
+urllib3==1.26.2
