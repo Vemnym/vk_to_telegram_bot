@@ -15,9 +15,8 @@ bot = telebot.TeleBot(config.telegram_TOKEN)
 @bot.message_handler(commands=['start'])
 def telegram_welcome(message):
     bot.send_message(message.chat.id,
-                     "Добро пожаловать, {0.first_name}!\nЯ - <b>{1.first_name}</b>\nНапишите мне то, что вы ищете.".format(
-                         message.from_user, bot.get_me()),
-                     parse_mode='html')
+                     "Добро пожаловать, {0.first_name}!\nЯ - <b>{1.first_name}</b>\nНапишите мне то, что вы ищете."
+                     .format(message.from_user, bot.get_me()), parse_mode='html')
 
 
 @bot.message_handler(content_types=['text'])
