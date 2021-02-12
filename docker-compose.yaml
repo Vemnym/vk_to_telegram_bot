@@ -1,0 +1,6 @@
+version: "3"
+
+services:
+  vk_to_telegram_bot:
+    build: .
+    restart: always
