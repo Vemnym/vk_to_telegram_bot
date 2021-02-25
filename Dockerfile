@@ -6,4 +6,5 @@ WORKDIR /usr/src/app
 COPY . /usr/src/app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-ENTRYPOINT ["python", "main.py"]
+CMD ["python", "create_database.py"]
+#ENTRYPOINT ["python", "main.py"]

@@ -1,6 +1,29 @@
 version: "3"
 
 services:
-  vk_to_telegram_bot:
+#  rebbitmq:
+#    image: "rabbitmq:latest"
+#    ports:
+#      - 5672:5672
+
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  db_migrate:
     build: .
-    restart: always
+    # command: bash -c "python create_database.py"
+    depends_on:
+      - db
+    healthcheck:
+      timeout: 10s
+
+#  vk_to_telegram_bot:
+#    build: .
+#    restart: always
+#    depends_on:
+#      - db
+#      - db_migrate
