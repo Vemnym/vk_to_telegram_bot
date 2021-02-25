@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import psycopg2
 from celery import shared_task
 import requests
@@ -12,22 +13,9 @@ def get_post_from_vk():
                             host="db")
     all_posts = []
 
-    # domain is list group from vk
-    domains = ["zaceny",
-               "doehalo",
-               "godnoten",
-               "aloauto",
-               "ali_do_3",
-               "ali_stallions",
-               "ali_yourcars",
-               "s_stylist",
-               "asianstyleali",
-               "alie_kids",
-               "instryment_s_kitay"]
-
-    for domain in domains:
+    for domain in config.domains:
         offset = 0
-        while offset < 300:
+        while offset < 2000:
             response = requests.get('https://api.vk.com/method/wall.get',  # spare request
                                     params={
                                         'access_token': config.vk_token,
@@ -36,7 +24,9 @@ def get_post_from_vk():
                                         'offset': offset,
                                         'count': 100,
                                     })
+
             data = response.json()['response']['items']
+
             all_posts.extend(data)
             offset +=100
 
@@ -50,11 +40,7 @@ def get_post_from_vk():
     cur.execute("CREATE TABLE products (id SERIAL PRIMARY KEY, text VARCHAR);")
 
     for post in correct_posts:
-        cur.execute("INSERT INTO products (text) VALUES(%s)", (post['text'],))
-
-    # cur.execute("SELECT text FROM products;")
-    #
-    # print(cur.fetchall())
+        cur.execute("INSERT INTO products (text) VALUES(%s)", (post['text'].lower(),))
 
     conn.commit()
     cur.close()

@@ -1,4 +1,4 @@
-version: "3"
+version: "3.9"
 
 services:
   rebbitmq:
@@ -13,20 +13,12 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
 
-  db_migrate:
+  vk_to_telegram_bot:
     build: .
-    # command: bash -c "python tasks.py"
+    command: "python main.py"
+    restart: always
     depends_on:
       - db
-    healthcheck:
-      timeout: 10s
-
-#  vk_to_telegram_bot:
-#    build: .
-#    restart: always
-#    depends_on:
-#      - db
-#      - db_migrate
 
   celery_beat:
     build: .

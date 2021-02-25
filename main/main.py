@@ -1,4 +1,6 @@
 import random
+
+import psycopg2
 import requests
 import telebot
 import config
@@ -24,20 +26,7 @@ def send_to_telegram(message):
     """
     Telegram_bot_logic
     """
-    posts = take_posts_from_vk(message)  # get posts from vk.com
-    correct_posts = []
-
-    for post in posts:  # filter for posts what have url
-        if 'http://ali.pub' in post['text'].lower():
-            if message.text.lower() in post['text'].lower():
-                correct_posts.append(post)
-
-    if not correct_posts:
-        for post in posts:
-            if 'http://ali.pub' in post['text'].lower():
-                for part in message.text.split(" "):
-                    if part.lower() in post['text'].lower():
-                        correct_posts.append(post)
+    correct_posts = take_posts_from_vk(message)  # get posts from vk.com
 
     try:  # for get random post from 'correct_posts'
         random_number = random.randint(0, len(correct_posts))
@@ -49,9 +38,9 @@ def send_to_telegram(message):
 
     try:
         bot_messeage = bot.send_message(message.chat.id, "Генерируем ссылку")
-        correct_posts[random_number]['text'] = edit_link(correct_posts[random_number]['text'])
+        correct_posts[random_number] = edit_link(correct_posts[random_number])
 
-        bot.send_message(message.chat.id, correct_posts[random_number]['text'])
+        bot.send_message(message.chat.id, correct_posts[random_number])
 
     except:
         bot.send_message(message.chat.id, "Сорян, но ни чего не нашел :(")
@@ -64,8 +53,10 @@ def edit_link(text):
     link_text = re.findall(pattern, text)
     correct_link = []
     for link in link_text:
-        temp = requests.get(link).url
+        temp = requests.get(str(link)).url
+        print(str(link))
         temp = "https://gotbest.by/redirect/cpa/o/qlmyq1ued8i0s6zohuljinyq8rr0m5js/?to=" + str(temp)
+        print(temp)
         correct_link.append(temp)
 
     correct_link = shortener.shorten_urls(correct_link)
@@ -86,52 +77,74 @@ def take_posts_from_vk(query):
 
     massiv_query = query.text.split(" ")
 
-    all_posts = []
-
     perc = 0  # % of search
     bot_messeage = bot.send_message(query.chat.id, str(perc) + "% поиск ")
 
-    # domain is list group from vk
-    domains = ["zaceny",
-               "doehalo",
-               "godnoten",
-               "aloauto",
-               "ali_do_3",
-               "ali_stallions",
-               "ali_yourcars",
-               "s_stylist",
-               "asianstyleali",
-               "alie_kids",
-               "instryment_s_kitay"]
+    all_posts = find_all_posts(query.text)
 
-    for one_query in massiv_query:
-        for domain in domains:
-            response = requests.get('https://api.vk.com/method/wall.search',  # main request
-                                    params={
-                                        'access_token': config.vk_token,
-                                        'v': config.version,
-                                        'domain': domain,
-                                        'count': 100,
-                                        'query': one_query
-                                    })
-            data = response.json()['response']['items']
-            all_posts.extend(data)
-            if not data:
-                response = requests.get('https://api.vk.com/method/wall.get',  # spare request
-                                        params={
-                                            'access_token': config.vk_token,
-                                            'v': config.version,
-                                            'domain': domain,
-                                            'count': 100,
-                                        })
-                data = response.json()['response']['items']
-                all_posts.extend(data)
+    if not all_posts:
+        for one_query in massiv_query:
+            if len(one_query) > 3:
+                all_posts.extend(find_all_posts(one_query))
+            perc += 100 // len(massiv_query)
+    if not all_posts:
+        for one_query in massiv_query:
+            if len(one_query) > 3:
+                for domain in config.domains:
+                    response = requests.get('https://api.vk.com/method/wall.search',  # spare request
+                                            params={
+                                                'access_token': config.vk_token,
+                                                'v': config.version,
+                                                'domain': domain,
+                                                'count': 10,
+                                                'query': one_query,
+                                            })
+                    data = response.json()['response']['items']
+                    all_posts.extend(data)
 
             # update % search message
-            perc += 100 // len(domains) // len(massiv_query)
+            perc += 100 // len(config.domains) // len(massiv_query)
             bot.edit_message_text(str(perc) + "% поиск ", query.chat.id, bot_messeage.message_id)
+        correct_posts = []
+        for post in all_posts:  # filter for posts what have url
+            if 'http://ali.pub' in post['text'].lower():
+                if query.text.lower() in post['text'].lower():
+                    correct_posts.append(post['text'])
+
+        if not correct_posts:
+            for post in all_posts:
+                if 'http://ali.pub' in post['text'].lower():
+                    for part in query.text.split(" "):
+                        if part.lower() in post['text'].lower():
+                            correct_posts.append(post["text"])
+
+        all_posts = correct_posts
 
     bot.delete_message(query.chat.id, bot_messeage.message_id)  # delete bot % search message
+
+    return all_posts
+
+
+def find_all_posts(query):
+    all_posts = []
+    print(query)
+    conn = psycopg2.connect(dbname="postgres",
+                            user="postgres",
+                            password="postgres",
+                            host="db")
+
+    cur = conn.cursor()
+    cur.execute("SELECT text FROM products WHERE text LIKE '% {} %';".format(query.lower()))
+    for item in cur.fetchall():
+        all_posts.extend(item)
+    if not all_posts:
+        cur.execute("SELECT text FROM products WHERE text LIKE '%{} %';".format(query.lower()))
+        for item in cur.fetchall():
+            all_posts.extend(item)
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
     return all_posts
 
