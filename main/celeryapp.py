@@ -30,6 +30,6 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'creating-new-objects': {
         'task': 'tasks.get_post_from_vk',
-        'schedule': crontab(minute=18, hour=15)
+        'schedule': crontab(minute=50, hour=15)
     }
 }
